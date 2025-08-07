@@ -128,6 +128,9 @@ importers:
         specifier: 1.25.4
         version: 1.25.4(react@19.0.0)
     devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.17.19
       '@workspace/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
@@ -138,7 +141,7 @@ importers:
   packages/eslint-config:
     devDependencies:
       '@eslint/js':
-        specifier: ^9.32.0
+        specifier: ^9.20.0
         version: 9.32.0
       '@next/eslint-plugin-next':
         specifier: ^15.1.7
