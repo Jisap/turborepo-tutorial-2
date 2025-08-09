@@ -3,13 +3,13 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
 const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
-  '/sing-up(.*)',
+  '/sign-up(.*)',
 ])
 
 export default clerkMiddleware(async(auth, req) => {
   if(!isPublicRoute(req)){
-    await auth.protect()
-  }
+    await auth.protect() // Si el usuario no está autenticado, redirige al login : sign-in configurado en .env
+  }                      // Si si esta autenticado, redirige a la ruta principal : "/" -> app/layout.tsx -> app/(dashboard)/layout -> <AuthGuard> -> page.tsx
 })
 
 export const config = {
