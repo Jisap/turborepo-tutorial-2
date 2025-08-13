@@ -43,6 +43,32 @@ const customerSupportItems = [
   }
 ]
 
+const configurationItems = [
+  {
+    title: "Widget Customization",
+    url: "/customization",
+    icon: PaletteIcon
+  },
+  {
+    title: "Integrations",
+    url: "/integrations",
+    icon: LayoutDashboardIcon
+  },
+  {
+    title: "Voice Assistant",
+    url: "/plugins/vapi",
+    icon: Mic
+  } 
+];
+
+const accountItems = [
+  {
+    title: "Plans & Billing",
+    url: "/billing",
+    icon: CreditCardIcon
+  },
+]
+
 export const DashboardSidebar = () => {
 
   const pathname = usePathname();
@@ -90,6 +116,56 @@ export const DashboardSidebar = () => {
                   >
                     <Link href={item.url}>
                       <item.icon className="size-4"/>
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Configuration */}
+        <SidebarGroup>
+          <SidebarGroupLabel>
+            Configuration
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {configurationItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.url)}
+                    tooltip={item.title}
+                  >
+                    <Link href={item.url}>
+                      <item.icon className="size-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Account */}
+        <SidebarGroup>
+          <SidebarGroupLabel>
+            Account
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {accountItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.url)}
+                    tooltip={item.title}
+                  >
+                    <Link href={item.url}>
+                      <item.icon className="size-4" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
