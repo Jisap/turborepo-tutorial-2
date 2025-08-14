@@ -120,6 +120,9 @@ export const DashboardSidebar = () => {
                   <SidebarMenuButton 
                     asChild
                     isActive={isActive(item.url)}
+                    className={cn(
+                      isActive(item.url) && "gradient-button"
+                    )}
                     tooltip={item.title}  
                   >
                     <Link href={item.url}>
@@ -145,6 +148,9 @@ export const DashboardSidebar = () => {
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
+                    className={cn(
+                      isActive(item.url) && "gradient-button"
+                    )}
                     tooltip={item.title}
                   >
                     <Link href={item.url}>
@@ -170,6 +176,9 @@ export const DashboardSidebar = () => {
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
+                    className={cn(
+                      isActive(item.url) && "gradient-button"
+                    )}
                     tooltip={item.title}
                   >
                     <Link href={item.url}>

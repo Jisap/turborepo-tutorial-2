@@ -182,4 +182,7 @@
     letter-spacing: var(--tracking-normal);
     font-weight: 500;
   }
+  .gradient-button {
+    @apply bg-gradient-to-b from-sidebar-priamry to-[#0b63f3]! text-sidebar-primary-foreground hover:to-[#0b63f3]/90
+  }
 }
