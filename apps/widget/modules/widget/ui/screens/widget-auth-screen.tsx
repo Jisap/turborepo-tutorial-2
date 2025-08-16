@@ -11,11 +11,18 @@ import { Input } from "@workspace/ui/components/input";
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation } from "convex/react";
+import { api } from "@workspace/backend/_generated/api";
+import { OrganizationGuard } from '../../../../../web/modules/auth/ui/components/organization-guard';
+import { Doc } from "@workspace/backend/_generated/dataModel";
+
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
 });
+
+const organizationId = "123" // Temporary test organizationId, before we add state management
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -29,8 +36,36 @@ export const WidgetAuthScreen = ({}) => {
     },
   });
 
-  const onSubmit = (values: FormData) => {
-    console.log(values);
+  const createContactSession = useMutation(api.public.contactSessions.create);
+
+  const onSubmit = async(values: FormData) => {
+    if(!organizationId) {
+      return
+    }
+
+    const metadata: Doc<"contactSessions">["metadata"] = {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      languages: navigator.languages?.join(","),
+      platform: navigator.platform,
+      vendor: navigator.vendor,
+      screenResolution: window.screen.width + "x" + window.screen.height,
+      viewportSize: window.innerWidth + "x" + window.innerHeight,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezoneOffset: new Date().getTimezoneOffset(),
+      cookieEnabled: navigator.cookieEnabled,
+      referrer: document.referrer,
+      currentUrl: window.location.href,
+    }
+
+    const contactSessionId = await createContactSession({
+      ...values,
+      organizationId,
+      metadata,
+    })
+    
+
+    console.log(contactSessionId);
   }
 
 
@@ -88,7 +123,7 @@ export const WidgetAuthScreen = ({}) => {
             )}
           />
 
-          <Button type="submit" className="mt-4">
+          <Button type="submit" className="mt-4" size="lg">
             Get Started
           </Button>
         </form>
