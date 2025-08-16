@@ -33,7 +33,7 @@ importers:
         specifier: ^2.4.6
         version: 2.4.6
       '@hookform/resolvers':
-        specifier: ^5.2.1
+        specifier: ^5.2.0
         version: 5.2.1(react-hook-form@7.62.0(react@19.0.0))
       '@sentry/nextjs':
         specifier: '10'
@@ -239,7 +239,7 @@ importers:
   packages/ui:
     dependencies:
       '@hookform/resolvers':
-        specifier: ^5.2.1
+        specifier: ^5.2.0
         version: 5.2.1(react-hook-form@7.62.0(react@19.0.0))
       '@radix-ui/react-accordion':
         specifier: ^1.2.11
