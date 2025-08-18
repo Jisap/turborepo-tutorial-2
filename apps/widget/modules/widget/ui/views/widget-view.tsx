@@ -5,6 +5,7 @@
 import { useAtomValue } from "jotai";                      // Hook para leer el estado
 import { screenAtom } from "../../atoms/widget-atoms";     // Importamos el atom de estado de las pantallas
 import { WidgetAuthScreen } from "../screens/widget-auth-screen";
+import { WidgetErrorScreen } from "../screens/widget-error-screen";
 
 
 
@@ -17,7 +18,7 @@ export const WidgetView = ({ organizationId }: Props) => {
   const screen = useAtomValue(screenAtom); // leemos el valor del atom de estado de pantalla
   
   const screenComponents = {               // Se crea un objeto con las pantallas posibles y a cada uno de ellas se le pasa el componente correspondiente
-    error: <p>TODO: Error</p>,
+    error: <WidgetErrorScreen />,
     loading: <p>TODO: Loading</p>,
     auth: <WidgetAuthScreen />,
     voice: <p>TODO: Voice</p>,
