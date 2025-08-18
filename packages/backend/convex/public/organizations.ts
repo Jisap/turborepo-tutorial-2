@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "../_generated/server";
+import { action } from "../_generated/server";
 import { createClerkClient } from "@clerk/backend"
 
 
@@ -8,19 +8,21 @@ const clerkClient = createClerkClient({
 })
 
 
-export const validate = mutation({
+export const validate = action({
   args: {
     organizationId: v.string()
   },
   handler: async(_, args) => {
-    try {
-      await clerkClient.organizations.getOrganization({ // Verificamos si la organización esta definida en Clerk
+      const organization = await clerkClient.organizations.getOrganization({ // Verificamos si la organización esta definida en Clerk
         organizationId: args.organizationId,
       });
 
-      return { valid: true };
-    } catch  {
-      return { valid: false, reason: "Organization not found" };
-    }
+      if(organization) {
+        return { valid: true };
+      }else{
+        return { valid: false, reason: "Organization not found" };
+      }
+    
+   
   }
 });
