@@ -12,7 +12,7 @@ export const validate = mutation({
   args: {
     organizationId: v.string()
   },
-  handler: async(ctx, args) => {
+  handler: async(_, args) => {
     try {
       await clerkClient.organizations.getOrganization({ // Verificamos si la organización esta definida en Clerk
         organizationId: args.organizationId,
