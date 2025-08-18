@@ -2,17 +2,36 @@
 
 // import { WidgetFooter } from "../components/widget-footer";
 // import { WidgetHeader } from "../components/widget-header";
+import { useAtomValue } from "jotai";                      // Hook para leer el estado
+import { screenAtom } from "../../atoms/widget-atoms";     // Importamos el atom de estado de las pantallas
 import { WidgetAuthScreen } from "../screens/widget-auth-screen";
+
+
 
 interface Props {
   organizationId: string;
 }
 
 export const WidgetView = ({ organizationId }: Props) => {
+
+  const screen = useAtomValue(screenAtom); // leemos el valor del atom de estado de pantalla
+  
+  const screenComponents = {               // Se crea un objeto con las pantallas posibles y a cada uno de ellas se le pasa el componente correspondiente
+    error: <p>TODO: Error</p>,
+    loading: <p>TODO: Loading</p>,
+    auth: <WidgetAuthScreen />,
+    voice: <p>TODO: Voice</p>,
+    inbox: <p>TODO: Inbox</p>,
+    selection: <p>TODO: Selection</p>,
+    chat: <p>TODO: Chat</p>,
+    contact: <p>TODO: Contact</p>,
+  }
+
   return (
     <main className="min-h-screen min-w-screen flex h-full w-full flex-col overflow-hidden rounded-xl border bg-muted">
       
-      <WidgetAuthScreen />
+      {/* Se renderiza el componente en base al valor del atom de estado de pantalla */}
+      {screenComponents[screen]} 
       {/* <WidgetFooter /> */}
     </main>
   )

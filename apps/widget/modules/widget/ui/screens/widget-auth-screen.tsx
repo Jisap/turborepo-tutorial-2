@@ -17,6 +17,8 @@ import { OrganizationGuard } from '../../../../../web/modules/auth/ui/components
 import { Doc } from "@workspace/backend/_generated/dataModel";
 
 
+
+
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
@@ -27,6 +29,8 @@ const organizationId = "123" // Temporary test organizationId, before we add sta
 type FormData = z.infer<typeof formSchema>;
 
 export const WidgetAuthScreen = ({}) => {
+
+
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -66,6 +70,7 @@ export const WidgetAuthScreen = ({}) => {
     
 
     console.log(contactSessionId);
+
   }
 
 
