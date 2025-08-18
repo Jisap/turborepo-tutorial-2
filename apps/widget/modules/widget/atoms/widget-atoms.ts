@@ -1,5 +1,8 @@
 import { atom } from "jotai";
 import { WidgetScreen } from "../types";
+import { atomFamily, atomWithStorage } from "jotai/utils";
+import { CONTACT_SESSION_KEY } from "../constants";
+import { Id } from "@workspace/backend/_generated/dataModel";
 
 // Basic widget state atoms
 
@@ -14,3 +17,11 @@ export const loadignMessageAtom = atom<string | null>(null); // valor por defect
 
 // Estado para almacenar el ID de la organización
 export const organizationIdAtom = atom<string | null>(null); // valor por defecto null
+
+// Organization-scoped contact session atom
+// En lugar de tener un solo átomo, tienes una función que te permite obtener o crear 
+// un átomo específico pasándole un parámetro.
+export const contactSessionIdAtomFamily = atomFamily(
+  (organizationId: string) => {
+    return atomWithStorage<Id<"contactSessions"> | null>(`${CONTACT_SESSION_KEY}_${organizationId}`, null)
+  })
