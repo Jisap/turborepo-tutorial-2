@@ -7,6 +7,7 @@ import { screenAtom } from "../../atoms/widget-atoms";     // Importamos el atom
 import { WidgetAuthScreen } from "../screens/widget-auth-screen";
 import { WidgetErrorScreen } from "../screens/widget-error-screen";
 import { WidgetLoadingScreen } from "../screens/widget-loading-screen";
+import { WidgetSelectionScreen } from "../screens/widget-selection-screen";
 
 
 
@@ -24,7 +25,7 @@ export const WidgetView = ({ organizationId }: Props) => {
     auth: <WidgetAuthScreen />,
     voice: <p>TODO: Voice</p>,
     inbox: <p>TODO: Inbox</p>,
-    selection: <p>TODO: Selection</p>,
+    selection: <WidgetSelectionScreen />,
     chat: <p>TODO: Chat</p>,
     contact: <p>TODO: Contact</p>,
   }
