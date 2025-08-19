@@ -1,11 +1,58 @@
 "use client"
 
-import { useAtomValue } from "jotai";
-import { errorMessageAtom } from "../../atoms/widget-atoms";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { contactSessionIdAtomFamily, errorMessageAtom, organizationIdAtom, screenAtom } from "../../atoms/widget-atoms";
 import { WidgetHeader } from "../components/widget-header";
+import { Button } from "@workspace/ui/components/button";
+import { MessageSquareTextIcon } from "lucide-react";
+import { create } from '../../../../../../packages/backend/convex/public/conversations';
+import { api } from "@workspace/backend/_generated/api";
+import { useMutation } from "convex/react";
+import { useState } from "react";
 
 export const WidgetSelectionScreen = () => {
   
+  const setScreen = useSetAtom(screenAtom);                  // Función para actualizar el estado de la pantalla que se muestra
+  const setErrorMessage = useSetAtom(errorMessageAtom);      // Función para actualizar el estado del mensaje de error
+  const organizationId = useAtomValue(organizationIdAtom);   // Atom para leer el ID de la organización
+  const contactSessionId = useAtomValue(
+    contactSessionIdAtomFamily(organizationId || "")
+  );
+
+  const createConversation = useMutation(api.public.conversations.create);
+  const [isPending, setIsPending] = useState(false);
+
+  const handleNewConversation = async() => {
+    
+    
+    if(!organizationId){
+      setScreen("error");
+      setErrorMessage("Missing organization ID");
+      return;
+    }
+    
+    if(!contactSessionId){
+      setScreen("auth");
+      return;
+    }
+
+    setIsPending(true);
+
+    try {
+      const conversationId = await createConversation({
+        organizationId,
+        contactSessionId,
+      });
+
+      setScreen("chat");
+
+    } catch {
+      setScreen("auth");
+    } finally {
+      setIsPending(false);
+    }
+
+  }
 
 
   return (
@@ -21,10 +68,18 @@ export const WidgetSelectionScreen = () => {
         </div>
       </WidgetHeader>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-y-4 p-4 text-muted-foreground">
-        <p className="text-sm">
-          Selection screen!
-        </p>
+      <div className="flex flex-1 flex-col items-center gap-y-4 p-4 overflow-y-auto">
+        <Button
+          className="h-16 w-full justify-between"
+          variant="outline"
+          onClick={handleNewConversation}
+          disabled={isPending}
+        >
+          <div className="flex items-center gap-x-2">
+            <MessageSquareTextIcon className="size-4"/>
+            <span>Start chat</span>
+          </div>
+        </Button>
       </div>
     </>
   )

@@ -13,7 +13,6 @@ import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "convex/react";
 import { api } from "@workspace/backend/_generated/api";
-import { OrganizationGuard } from '../../../../../web/modules/auth/ui/components/organization-guard';
 import { Doc } from "@workspace/backend/_generated/dataModel";
 import { useAtomValue, useSetAtom } from "jotai";
 import { contactSessionIdAtomFamily, organizationIdAtom } from "../../atoms/widget-atoms";
