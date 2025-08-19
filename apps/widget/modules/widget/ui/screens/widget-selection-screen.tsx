@@ -1,7 +1,7 @@
 "use client"
 
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { contactSessionIdAtomFamily, errorMessageAtom, organizationIdAtom, screenAtom } from "../../atoms/widget-atoms";
+import { contactSessionIdAtomFamily, conversationIdAtom, errorMessageAtom, organizationIdAtom, screenAtom } from "../../atoms/widget-atoms";
 import { WidgetHeader } from "../components/widget-header";
 import { Button } from "@workspace/ui/components/button";
 import { MessageSquareTextIcon } from "lucide-react";
@@ -14,6 +14,8 @@ export const WidgetSelectionScreen = () => {
   
   const setScreen = useSetAtom(screenAtom);                  // Función para actualizar el estado de la pantalla que se muestra
   const setErrorMessage = useSetAtom(errorMessageAtom);      // Función para actualizar el estado del mensaje de error
+  const setConversationId = useSetAtom(conversationIdAtom);  // Función para actualizar el estado del ID de la conversación
+
   const organizationId = useAtomValue(organizationIdAtom);   // Atom para leer el ID de la organización
   const contactSessionId = useAtomValue(
     contactSessionIdAtomFamily(organizationId || "")
@@ -44,6 +46,7 @@ export const WidgetSelectionScreen = () => {
         contactSessionId,
       });
 
+      setConversationId(conversationId);
       setScreen("chat");
 
     } catch {

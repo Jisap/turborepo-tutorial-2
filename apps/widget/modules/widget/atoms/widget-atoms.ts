@@ -25,3 +25,6 @@ export const contactSessionIdAtomFamily = atomFamily(
   (organizationId: string) => {
     return atomWithStorage<Id<"contactSessions"> | null>(`${CONTACT_SESSION_KEY}_${organizationId}`, null)
   })
+
+// Estado para almacenar el ID de la conversación
+export const conversationIdAtom = atom<Id<"conversations"> | null>(null);
