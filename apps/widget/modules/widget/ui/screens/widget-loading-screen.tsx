@@ -140,9 +140,11 @@ export const WidgetLoadingScreen = ({ organizationId }:{ organizationId: string 
     // Determina si hay una sesión válida (convex confirmo ese id) 
     // y activa (se encontro un id de session en el navegador).
     const hasValidSession = contactSessionId && sessionValid;
+    
     // Establece la pantalla final basándose en el estado de la sesión.
     // 'selection' para usuarios existentes, 'auth' para usuarios nuevos.
     setScreen(hasValidSession ? "selection" : "auth");
+    
   },[step, contactSessionId, sessionValid, setScreen]);
 
   return (
