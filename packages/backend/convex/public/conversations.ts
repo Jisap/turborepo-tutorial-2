@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
+import { supportAgent } from "../system/ai/agents/supportAgent";
 
 
 export const getOne = query({
@@ -19,6 +20,13 @@ export const getOne = query({
     const conversation = await ctx.db.get(args.conversationId);
     if (!conversation) {
       return null
+    }
+
+    if (conversation.contactSessionId !== session._id) {    // un usuario solo pueda ver las conversaciones que le pertenecen.
+      throw new ConvexError({                               // session_id representa el id de la session del usuario que actualmente esta intentando acceder a la conversación
+        code: "NOT_FOUND",
+        message: "Incorrect session"
+      })
     }
 
     return {
@@ -46,9 +54,11 @@ export const create = mutation({
       })
     }
 
-    const threadId = "123" // TODO: Replace with a real threadId
+    const { threadId } = await supportAgent.createThread(ctx,{
+      userId: args.organizationId
+    })
 
-    const conversationId = await ctx.db.insert("conversations", {
+    const conversationId = await ctx.db.insert("conversations", { // Cada conversación se asocia con la id de la session de contacto que la inicio
       contactSessionId: session._id,
       status: "unresolved",
       organizationId: args.organizationId,
