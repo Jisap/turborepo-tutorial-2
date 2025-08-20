@@ -54,7 +54,7 @@ export const create = mutation({
       })
     }
 
-    const { threadId } = await supportAgent.createThread(ctx,{
+    const { threadId } = await supportAgent.createThread(ctx,{  // Crea un hilo de conversación en el agente de soporte basado en userId que es el id de la organización
       userId: args.organizationId
     })
 
