@@ -1,8 +1,9 @@
 import { ConvexError, v } from "convex/values";
-import { action } from "../_generated/server";
+import { action, query } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { supportAgent } from "../system/ai/agents/supportAgent";
 import { Id } from "../_generated/dataModel";
+import { paginationOptsValidator } from "convex/server";
 
 // Punto de entrada principal para que un usuario envíe un nuevo mensaje a una conversación existente.
 // Su objetivo no es solo guardar el mensaje, sino orquestar una serie de validaciones y, lo más importante, 
@@ -67,3 +68,46 @@ export const create = action({
     );
   }
 })
+
+export const getMany = query({
+  args: {
+    threadId: v.string(),
+    paginationOpts: paginationOptsValidator,
+    contactSessionId: v.id('contactSessions'),
+  },
+
+  handler: async (ctx, args) => {
+    // 1. Validar la sesión del usuario
+    const contactSession = await ctx.db.get(args.contactSessionId);
+
+    if (!contactSession || contactSession.expiresAt < Date.now()) {
+      throw new ConvexError({
+        code: 'UNAUTHORIZED',
+        message: 'Invalid session',
+      });
+    }
+
+    // 2. Validar que el usuario tiene permiso para ver esta conversación
+    const conversation = await ctx.db
+      .query('conversations')
+      .withIndex('by_thread_id', (q) => q.eq('threadId', args.threadId))
+      .unique();
+
+    // Si la conversación no existe o no pertenece a esta sesión, lanzamos un error.
+    // Usamos NOT_FOUND para no dar pistas sobre si la conversación existe.
+    if (!conversation || conversation.contactSessionId !== contactSession._id) {
+      throw new ConvexError({
+        code: 'NOT_FOUND',
+        message: 'Conversation not found',
+      });
+    }
+
+    // 3. Si la autorización es correcta, obtener los mensajes
+    const paginated = await supportAgent.listMessages(ctx, {
+      threadId: args.threadId,
+      paginationOpts: args.paginationOpts,
+    });
+
+    return paginated;
+  },
+});
