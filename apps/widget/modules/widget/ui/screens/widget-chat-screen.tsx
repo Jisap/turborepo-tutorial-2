@@ -1,13 +1,33 @@
 "use client"
 
+import { useThreadMessages, toUIMessages } from '@convex-dev/agent/react';
 import { Button } from "@workspace/ui/components/button";
 import { WidgetHeader } from "../components/widget-header";
 import { ArrowLeftIcon, MenuIcon } from "lucide-react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { contactSessionIdAtomFamily, conversationIdAtom, organizationIdAtom, screenAtom } from "../../atoms/widget-atoms";
-import { api } from "@workspace/backend/_generated/api";
-import { use } from "react";
+import { api } from "@workspace/backend/_generated/api";;
 import { useQuery } from "convex/react";
+import { 
+  AIConversation,
+  AIConversationContent,
+  AIConversationScrollButton,
+} from "@workspace/ui/components/ai/conversation";
+import {
+  AIInput,
+  AIInputSubmit,
+  AIInputTextarea,
+  AIInputToolbar,
+  AIInputTools,
+} from '@workspace/ui/components/ai/input';
+import {
+  AIMessage,
+  AIMessageContent,
+} from '@workspace/ui/components/ai/message';
+import {
+  AISuggestion,
+  AISuggestions,
+} from '@workspace/ui/components/ai/suggestion';
 
 export const WidgetChatScreen = () => {
 
@@ -29,6 +49,20 @@ export const WidgetChatScreen = () => {
         } 
       : "skip"                                                  // Si son null o undefined no se ejecuta la consulta
   );
+
+  const messages = useThreadMessages(                           // Query para obtener los mensajes de la conversación
+    api.public.messages.getMany,                                // Función de consulta getMany
+    conversation?.threadId && contactSessionId                  // Argumentos para la consulta.  Si no son null o undefinded
+      ? {
+        threadId: conversation.threadId,                        // getMany las usa
+        contactSessionId,                       
+      }
+      : 'skip',
+    {
+      initialNumItems: 10,
+    }
+  );
+
 
   const onBack = () => {
     setConversationId(null);
@@ -60,6 +94,7 @@ export const WidgetChatScreen = () => {
       <div className="flex flex-1 flex-col gap-y-4 p-4">
         <p className="text-sm">
           {JSON.stringify(conversation)}
+          {JSON.stringify(messages)}
         </p>
       </div>
     </>
