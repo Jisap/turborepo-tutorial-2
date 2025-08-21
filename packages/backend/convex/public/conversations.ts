@@ -1,6 +1,8 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { supportAgent } from "../system/ai/agents/supportAgent";
+import { saveMessage } from "@convex-dev/agent";
+import { components } from "../_generated/api";
 
 
 export const getOne = query({
@@ -45,8 +47,8 @@ export const create = mutation({
     organizationId: v.string(),
     contactSessionId: v.id("contactSessions"),
   },
-  handler: async(ctx, args) => {
-    const session = await ctx.db.get(args.contactSessionId); // Al darle el arg contactSessionId get sabe que tiene que obtener el objeto contactSession asociado a ese id
+  handler: async(ctx, args) => {                                 // Obtenemos la sesión del usuario -> validación de sesión
+    const session = await ctx.db.get(args.contactSessionId);     // Al darle el arg contactSessionId get sabe que tiene que obtener el objeto contactSession asociado a ese id
     if(!session || session.expiresAt < Date.now()) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
@@ -54,9 +56,18 @@ export const create = mutation({
       })
     }
 
-    const { threadId } = await supportAgent.createThread(ctx,{  // Crea un hilo de conversación en el agente de soporte basado en userId que es el id de la organización
+    const { threadId } = await supportAgent.createThread(ctx,{   // Crea un hilo de conversación en el agente de soporte basado en userId que es el id de la organización
       userId: args.organizationId
     })
+
+    
+    await saveMessage(ctx, components.agent, {                   // Guarda el mensaje de bienvenida inicial del asistente en el nuevo hilo.
+      threadId,
+      message: {
+        role: 'assistant',
+        content: 'Hello, how can I help you today?',
+      },
+    });
 
     const conversationId = await ctx.db.insert("conversations", { // Cada conversación se asocia con la id de la session de contacto que la inicio
       contactSessionId: session._id,
