@@ -15,7 +15,7 @@ import { useMutation } from "convex/react";
 import { api } from "@workspace/backend/_generated/api";
 import { Doc } from "@workspace/backend/_generated/dataModel";
 import { useAtomValue, useSetAtom } from "jotai";
-import { contactSessionIdAtomFamily, organizationIdAtom } from "../../atoms/widget-atoms";
+import { contactSessionIdAtomFamily, organizationIdAtom, screenAtom } from "../../atoms/widget-atoms";
 
 
 
@@ -29,7 +29,9 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export const WidgetAuthScreen = ({}) => {
+export const WidgetAuthScreen = () => {
+
+  const setScreen = useSetAtom(screenAtom);
 
   const organizationId = useAtomValue(organizationIdAtom);
   const setContactSessionId = useSetAtom(
@@ -75,6 +77,7 @@ export const WidgetAuthScreen = ({}) => {
 
     console.log(contactSessionId);
     setContactSessionId(contactSessionId);
+    setScreen("selection");
   }
 
 

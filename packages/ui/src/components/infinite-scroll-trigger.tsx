@@ -23,7 +23,7 @@ interface InfiniteScrollTriggerProps {
  * directamente al elemento `div` del DOM, lo cual es esencial para que el `IntersectionObserver` funcione.
  */
 
-export const InfiniteScrollTrigger = React.forwardRef<HTMLDivElement, InfiniteScrollTriggerProps>(
+export const InfiniteScrollTrigger = React.forwardRef<HTMLDivElement, InfiniteScrollTriggerProps>( // Recibe 2 argumentos: la ref y las props
   ({
     canLoadMore,
     isLoadingMore,
@@ -41,7 +41,10 @@ export const InfiniteScrollTrigger = React.forwardRef<HTMLDivElement, InfiniteSc
     }
   
     return (
-      <div ref={ref} className={cn("flex w-full justify-center py-2", className)}>
+      <div 
+        ref={ref} 
+        className={cn("flex w-full justify-center py-2", className)}
+      >
         <Button
           // El botón se deshabilita si no se puede cargar más o si ya está cargando.
           disabled={!canLoadMore || isLoadingMore}

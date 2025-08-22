@@ -13,6 +13,8 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { Form, FormField } from '@workspace/ui/components/form';
 import { AIResponse } from '../../../../../../packages/ui/src/components/ai/response';
+import { useInfiniteScroll } from '@workspace/ui/hooks/use-infinite-scroll';
+import { InfiniteScrollTrigger } from '@workspace/ui/components/infinite-scroll-trigger';
 import { 
   AIConversation,
   AIConversationContent,
@@ -33,6 +35,7 @@ import {
   AISuggestion,
   AISuggestions,
 } from '@workspace/ui/components/ai/suggestion';
+
 
 const formSchema = z.object({
   message: z.string().min(1, 'Message is required' )
@@ -71,6 +74,17 @@ export const WidgetChatScreen = () => {
       initialNumItems: 10,
     }
   );
+
+  const {
+    topElementRef,
+    handleLoadMore,
+    canLoadMore,
+    isLoadingMore,
+  } = useInfiniteScroll({                                     // useInfiniteScroll proporciona los elementos necesarios para implementar el scroll infinito
+    status: messages.status,
+    loadMore: messages.loadMore,
+    loadSize: 10,
+  })
 
   const onBack = () => {
     setConversationId(null);
@@ -120,6 +134,13 @@ export const WidgetChatScreen = () => {
 
       <AIConversation>
         <AIConversationContent>
+          {/* Propociona el boton de carga más para el scroll infinito */}
+          <InfiniteScrollTrigger 
+            canLoadMore={canLoadMore}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={handleLoadMore}
+            ref={topElementRef}
+          />
           {toUIMessages(messages.results ?? [])?.map((message) => (
             <AIMessage
               from={message.role === 'user' ? 'user' : 'assistant'}
