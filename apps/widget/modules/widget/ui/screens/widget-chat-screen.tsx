@@ -15,6 +15,7 @@ import { Form, FormField } from '@workspace/ui/components/form';
 import { AIResponse } from '../../../../../../packages/ui/src/components/ai/response';
 import { useInfiniteScroll } from '@workspace/ui/hooks/use-infinite-scroll';
 import { InfiniteScrollTrigger } from '@workspace/ui/components/infinite-scroll-trigger';
+import { DicebearAvatar } from '../../../../../../packages/ui/src/components/dicebear-avatar';
 import { 
   AIConversation,
   AIConversationContent,
@@ -149,7 +150,14 @@ export const WidgetChatScreen = () => {
               <AIMessageContent>
                 <AIResponse>{message.content}</AIResponse>
               </AIMessageContent>
-              {/* TODO: Add Avatar component */}
+              {/* Add Avatar component */}
+              {message.role === "assistant" && (
+                <DicebearAvatar
+                  imageUrl="/logo.svg"
+                  seed="assistant"
+                  size={32}
+                />
+              )}
             </AIMessage>
           ))}
         </AIConversationContent>
