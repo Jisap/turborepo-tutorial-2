@@ -1,8 +1,67 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { supportAgent } from "../system/ai/agents/supportAgent";
-import { saveMessage } from "@convex-dev/agent";
+import { MessageDoc, saveMessage } from "@convex-dev/agent";
 import { components } from "../_generated/api";
+import { paginationOptsValidator } from "convex/server";
+
+
+export const getMany = query({
+  args: {
+    contactSessionId: v.id('contactSessions'),
+    paginationOpts: paginationOptsValidator,
+  },
+
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.contactSessionId);           // Obtenemos la sesión del usuario -> validación de sesión
+
+    if (!session || session.expiresAt < Date.now()) {
+      throw new ConvexError({
+        code: 'UNAUTHORIZED',
+        message: 'Invalid session',
+      });
+    }
+
+    const conversations = await ctx.db                                   // Obtenemos las conversaciones que tiene el usuario
+      .query('conversations')
+      .withIndex('by_contact_session_id', (q) =>
+        q.eq('contactSessionId', args.contactSessionId)
+      )
+      .order('desc')
+      .paginate(args.paginationOpts);
+
+    const conversationsWithLastMessage = await Promise.all(              // El proposito es tomar una lista paginada de conversaciones y enriquecerlas con la información de su último mensaje
+      conversations.page.map(async (conversation) => {                   // Por cada conversación
+        let lastMessage: MessageDoc | null = null;                       // Se inicializa el último mensaje como null	
+
+        const message = await supportAgent.listMessages(ctx, {           // Llamamos a listMessages del agente de soporte                
+          threadId: conversation.threadId,                               // para que busque en hilo (thread) de la convesación actual
+          paginationOpts: {
+            cursor: null,
+            numItems: 1,                                                 // Solo obtenemos un mensaje. Como la lista esta ordenada de forma decendente el mensaje será el último
+          },
+        });
+
+        if (message.page.length > 0) lastMessage = message.page[0] ?? null; // Si se encontró un mensaje se asigna a lasMessage
+
+        return {
+          _id: conversation._id,
+          _creationTime: conversation._creationTime,
+          contactSessionId: conversation.contactSessionId,
+          organizationId: conversation.organizationId,
+          status: conversation.status,
+          threadId: conversation.threadId,
+          lastMessage,
+        };
+      })
+    );
+
+    return {
+      ...conversations,
+      page: conversationsWithLastMessage,
+    };
+  },
+});
 
 
 export const getOne = query({
