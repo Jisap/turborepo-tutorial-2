@@ -13,7 +13,7 @@ export const getMany = query({
   },
 
   handler: async (ctx, args) => {
-    const session = await ctx.db.get(args.contactSessionId);           // Obtenemos la sesión del usuario -> validación de sesión
+    const session = await ctx.db.get(args.contactSessionId);            // Obtenemos la sesión del usuario -> validación de sesión
 
     if (!session || session.expiresAt < Date.now()) {
       throw new ConvexError({
@@ -45,8 +45,8 @@ export const getMany = query({
         if (message.page.length > 0) lastMessage = message.page[0] ?? null; // Si se encontró un mensaje se asigna a lasMessage
 
         return {
-          _id: conversation._id,
-          _creationTime: conversation._creationTime,
+          _id: conversation._id,                                          // Se construye y devuelve un nuevo objeto que contiene todos 
+          _creationTime: conversation._creationTime,                      // los campos de la conversación original, más el nuevo campo lastMessage.
           contactSessionId: conversation.contactSessionId,
           organizationId: conversation.organizationId,
           status: conversation.status,
@@ -56,9 +56,9 @@ export const getMany = query({
       })
     );
 
-    return {
-      ...conversations,
-      page: conversationsWithLastMessage,
+    return {                                                              // GetMany retorna un objeto con 
+      ...conversations,                                                   // las conversaciones de la paginación
+      page: conversationsWithLastMessage,                                 // y el campo page que reemplaza la lista original por la nueva ConversationWithLastMessage que ya contiene el último mensaje
     };
   },
 });
