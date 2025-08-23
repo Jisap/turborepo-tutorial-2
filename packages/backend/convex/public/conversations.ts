@@ -119,12 +119,14 @@ export const create = mutation({
       userId: args.organizationId
     })
 
-    
+    const today = new Date().toUTCString();                      // Obtenemos la fecha actual en formato UTC para dársela al agente.
+
     await saveMessage(ctx, components.agent, {                   // Guarda el mensaje de bienvenida inicial del asistente en el nuevo hilo.
       threadId,
       message: {
         role: 'assistant',
-        content: 'Hello, how can I help you today?',
+        // Inyectamos la fecha actual en el primer mensaje para que el agente la conozca.
+        content: `Hello, how can I help you today? For your reference, today's date is ${today}.`,
       },
     });
 

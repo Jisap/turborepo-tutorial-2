@@ -4,11 +4,12 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { contactSessionIdAtomFamily, conversationIdAtom, errorMessageAtom, organizationIdAtom, screenAtom } from "../../atoms/widget-atoms";
 import { WidgetHeader } from "../components/widget-header";
 import { Button } from "@workspace/ui/components/button";
-import { MessageSquareTextIcon } from "lucide-react";
+import { ChevronRight, MessageSquareTextIcon } from "lucide-react";
 import { create } from '../../../../../../packages/backend/convex/public/conversations';
 import { api } from "@workspace/backend/_generated/api";
 import { useMutation } from "convex/react";
 import { useState } from "react";
+import { WidgetFooter } from "../components/widget-footer";
 
 export const WidgetSelectionScreen = () => {
   
@@ -82,8 +83,10 @@ export const WidgetSelectionScreen = () => {
             <MessageSquareTextIcon className="size-4"/>
             <span>Start chat</span>
           </div>
+          <ChevronRight />
         </Button>
       </div>
+      <WidgetFooter />
     </>
   )
 }
