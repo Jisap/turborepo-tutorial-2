@@ -114,78 +114,56 @@ export const getMany = query({ // No es necesario el contactSessionId porque est
 
 export const getOne = query({
   args: {
-    conversationId: v.id("conversations"),
-    contactSessionId: v.id("contactSessions"),
+    conversationId: v.id('conversations'),
   },
-  handler: async(ctx, args) => {
-    const session = await ctx.db.get(args.contactSessionId); // Al darle el arg contactSessionId get sabe que tiene que obtener el objeto contactSession asociado a ese id
-    if (!session || session.expiresAt < Date.now()) {
+  handler: async (ctx, args) => {
+
+    const identity = await ctx.auth.getUserIdentity()
+    if (identity === null) {
       throw new ConvexError({
-        code: "UNAUTHORIZED",
-        message: "Invalid session"
+        code: 'UNAUTHORIZED',
+        message: 'Identity not found',
       })
     }
 
-    const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation) {
-      return null
+    const orgId = identity.orgId as string
+    if (!orgId) {
+      throw new ConvexError({
+        code: 'UNAUTHORIZED',
+        message: 'Organization not found',
+      })
     }
 
-    if (conversation.contactSessionId !== session._id) {    // un usuario solo pueda ver las conversaciones que le pertenecen.
-      throw new ConvexError({                               // session_id representa el id de la session del usuario que actualmente esta intentando acceder a la conversación
-        code: "NOT_FOUND",
-        message: "Incorrect session"
+    const conversation = await ctx.db.get(args.conversationId)
+    if (!conversation) {
+      throw new ConvexError({
+        code: 'NOT_FOUND',
+        message: 'Conversation not found',
+      })
+    }
+
+    if (conversation.organizationId !== orgId) {
+      throw new ConvexError({
+        code: 'UNAUTHORIZED',
+        message: 'Invalid Organization ID',
+      })
+    }
+
+    const contactSession = await ctx.db.get(conversation.contactSessionId)
+
+    if (!contactSession) {
+      throw new ConvexError({
+        code: 'NOT_FOUND',
+        message: 'Contact Session not found',
       })
     }
 
     return {
-      _id: conversation._id,
-      status: conversation.status,
-      threadId: conversation.threadId,
+      ...conversation,
+      contactSession,
     }
-  }
-})
-
-
-
-
-export const create = mutation({
-  args: {
-    organizationId: v.string(),
-    contactSessionId: v.id("contactSessions"),
   },
-  handler: async(ctx, args) => {                                 // Obtenemos la sesión del usuario -> validación de sesión
-    const session = await ctx.db.get(args.contactSessionId);     // Al darle el arg contactSessionId get sabe que tiene que obtener el objeto contactSession asociado a ese id
-    if(!session || session.expiresAt < Date.now()) {
-      throw new ConvexError({
-        code: "UNAUTHORIZED",
-        message: "Invalid session"
-      })
-    }
-
-    const { threadId } = await supportAgent.createThread(ctx,{   // Crea un hilo de conversación en el agente de soporte basado en userId que es el id de la organización
-      userId: args.organizationId
-    })
-
-    const today = new Date().toUTCString();                      // Obtenemos la fecha actual en formato UTC para dársela al agente.
-
-    await saveMessage(ctx, components.agent, {                   // Guarda el mensaje de bienvenida inicial del asistente en el nuevo hilo.
-      threadId,
-      message: {
-        role: 'assistant',
-        // Inyectamos la fecha actual en el primer mensaje para que el agente la conozca.
-        content: `Hello, how can I help you today? For your reference, today's date is ${today}.`,
-      },
-    });
-
-    const conversationId = await ctx.db.insert("conversations", { // Cada conversación se asocia con la id de la session de contacto que la inicio
-      contactSessionId: session._id,
-      status: "unresolved",
-      organizationId: args.organizationId,
-      threadId,
-    });
-
-
-    return conversationId;
-  }
 })
+
+
+
