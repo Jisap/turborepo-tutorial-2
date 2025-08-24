@@ -15,10 +15,23 @@ import {
   ListIcon,
 } from 'lucide-react';
 import { ScrollArea } from '@workspace/ui/components/scroll-area'
+import { api } from '@workspace/backend/_generated/api';
+import { usePaginatedQuery } from 'convex/react';
 
 
 
 const ConversationsPanel = () => {
+
+  const conversations = usePaginatedQuery( // Usamos la función usePaginatedQuery para obtener una lista paginada de conversaciones
+    api.private.conversations.getMany,
+    {
+      status: undefined
+    },
+    {
+      initialNumItems: 10,
+    },
+  )
+
   return (
     <div className="flex size-full flex-col bg-background text-sidebar-foreground">
       <div className="flex flex-col gap-3.5 border-b p-2">
@@ -62,7 +75,7 @@ const ConversationsPanel = () => {
 
       <ScrollArea className="max-h-[calc(100vh-53px)]">
         <div className="flex w-full flex-1 flex-col text-sm">
-          
+          {JSON.stringify(conversations)}
         </div>
       </ScrollArea>
     </div>

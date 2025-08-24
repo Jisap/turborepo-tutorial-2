@@ -1,8 +1,8 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { query } from "../_generated/server";
 import { supportAgent } from "../system/ai/agents/supportAgent";
 import { MessageDoc, saveMessage } from "@convex-dev/agent";
-import { components } from "../_generated/api";
+
 import { paginationOptsValidator, PaginationResult } from "convex/server";
 import { Doc } from "../_generated/dataModel";
 
@@ -37,7 +37,7 @@ export const getMany = query({ // No es necesario el contactSessionId porque est
       });
     }
 
-    const orgId = identity.org as string;                      // Si la autenticación es exitosa, extrae el orgId (ID de la organización) de la identidad del usuario.       
+    const orgId = identity.orgId as string;                    // Si la autenticación es exitosa, extrae el orgId (ID de la organización) de la identidad del usuario.
     if (!orgId) {                                              // Esto es crucial porque la consulta solo devolverá las conversaciones que pertenecen a la organización  
       throw new ConvexError({                                  // del usuario que realiza la petición.
         code: 'UNAUTHORIZED',
@@ -164,6 +164,3 @@ export const getOne = query({
     }
   },
 })
-
-
-
