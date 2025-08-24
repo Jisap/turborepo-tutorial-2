@@ -24,29 +24,54 @@ import { usePathname } from 'next/navigation';
 import { DicebearAvatar } from '../../../../../../packages/ui/src/components/dicebear-avatar';
 import { formatDistanceToNow } from 'date-fns'
 import ConversationStatusIcon from '../../../../../../packages/ui/src/components/conversation-status-icon';
+import { useAtomValue, useSetAtom } from 'jotai/react';
+import { statusFilterAtom } from '../../atoms';
+import { useInfiniteScroll } from '../../../../../../packages/ui/src/hooks/use-infinite-scroll';
+import { Skeleton } from '@workspace/ui/components/skeleton';
+import { InfiniteScrollTrigger } from '../../../../../../packages/ui/src/components/infinite-scroll-trigger';
 
 
 const ConversationsPanel = () => {
 
-  const pathname = usePathname()
+  const pathname = usePathname();
+
+  const statusFilter = useAtomValue(statusFilterAtom)
+  const setStatusFilter = useSetAtom(statusFilterAtom)
 
   const conversations = usePaginatedQuery( // Usamos la función usePaginatedQuery para obtener una lista paginada de conversaciones
     api.private.conversations.getMany,
     {
-      status: undefined
+      status: statusFilter === 'all' ? undefined : statusFilter,
     },
     {
       initialNumItems: 10,
     },
   )
 
+  const {
+    topElementRef,
+    handleLoadMore,
+    canLoadMore,
+    isLoadingMore,
+    isLoadingFirstPage,
+  } = useInfiniteScroll({
+    status: conversations.status,
+    loadMore: conversations.loadMore,
+    loadSize: 5,
+    observerEnabled: false,
+  })
+
   return (
     <div className="flex size-full flex-col bg-background text-sidebar-foreground">
       <div className="flex flex-col gap-3.5 border-b p-2">
         <Select
           defaultValue='all'
-          onValueChange={() => {}}
-          value="all"
+          onValueChange={(value) =>
+            setStatusFilter(
+              value as 'unresolved' | 'resolved' | 'escalated' | 'all',
+            )
+          }
+          value={statusFilter}
         >
           <SelectTrigger className="h-8 border-none px-1.5 shadow-none ring-0 hover:bg-accent hover:text-accent-foreground focus-visible:ring-0"> 
             <SelectValue placeholder="Filter" />
@@ -81,7 +106,10 @@ const ConversationsPanel = () => {
         </Select>
       </div>
 
-      <ScrollArea className="max-h-[calc(100vh-53px)]">
+      {isLoadingFirstPage ? (
+        <SkeletonConversations />
+      ) : (
+        <ScrollArea className="max-h-[calc(100vh-53px)]">
         <div className="flex w-full flex-1 flex-col text-sm">
           {conversations.results.map((conversation) => {
 
@@ -150,16 +178,49 @@ const ConversationsPanel = () => {
 
                     <ConversationStatusIcon status={conversation.status} />
                   </div>
-
-                </div>
-                
+                </div>  
               </Link>
             )
           })}
+              <InfiniteScrollTrigger
+                canLoadMore={canLoadMore}
+                isLoadingMore={isLoadingMore}
+                onLoadMore={handleLoadMore}
+                ref={topElementRef}
+              />
         </div>
       </ScrollArea>
+     )}  
     </div>
   )
 }
 
 export default ConversationsPanel
+
+export const SkeletonConversations = () => {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
+      <div className="relative flex w-full min-w-0 flex-col p-2">
+        <div className="w-full space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-3 rounded-lg p-4 last:border-b-0"
+            >
+              <Skeleton className="size-10 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1">
+                <div className="flex w-full items-center gap-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="ml-auto h-3 w-12 shrink-0" />
+                </div>
+                <div className="mt-2">
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
