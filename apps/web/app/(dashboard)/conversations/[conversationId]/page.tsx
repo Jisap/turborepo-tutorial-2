@@ -1,3 +1,5 @@
+import { ConversationIdView } from "@/modules/dashboard/views/conversation-id-view";
+import { Id } from "@workspace/backend/_generated/dataModel";
 
 
 
@@ -14,7 +16,7 @@ const Page = async({ params }: Props) => {
 
   return (
     <div>
-      <h1>Conversation {conversationId}</h1>
+      <ConversationIdView conversationId={conversationId as Id<"conversations">} />
     </div>
   )
 }
