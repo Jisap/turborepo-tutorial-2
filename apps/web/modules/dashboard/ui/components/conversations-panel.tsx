@@ -63,7 +63,7 @@ const ConversationsPanel = () => {
 
   return (
     <div className="flex size-full flex-col bg-background text-sidebar-foreground">
-      <div className="flex flex-col gap-3.5 border-b p-2">
+      <div className="flex flex-col gap-3.5 border-b p-2.5">
         <Select
           defaultValue='all'
           onValueChange={(value) =>
