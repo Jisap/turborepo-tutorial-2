@@ -5,7 +5,75 @@ import { supportAgent } from "../system/ai/agents/supportAgent";
 import { Id } from "../_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
 import { saveMessage } from "@convex-dev/agent";
+import { generateText } from 'ai';
+import { google } from "@ai-sdk/google";
 
+
+/**
+ * enhanceResponse mejora la respuesta de un agente de soporte humano utilizando IA.
+ *
+ * Esta acción no envía un mensaje al cliente final. En su lugar, actúa como un
+ * "asistente para el asistente": toma un borrador de texto escrito por el operador,
+ * lo envía a un modelo de IA (Gemini) para que lo reformule de manera más profesional,
+ * y devuelve la versión mejorada al panel del operador para que este decida si usarla.
+ */
+
+/**
+ * Resumen del Flujo de Trabajo
+ * 1º Un cliente escribe en el widget.
+ * 2º A ti (operador) te aparece una nueva conversación en el panel.
+ * 3º Abres la conversación. Lees el mensaje del cliente.
+ * 4º Escribes una respuesta.
+ * 5º (Opcional) Usas la IA (Gemini) para que te ayude a reformular tu respuesta y hacerla más profesional.
+ * 6º Envías la respuesta final al cliente.
+ */
+export const enhanceResponse = action({
+  args: {
+    // 1. Recibe el mensaje del agente como argumento
+    prompt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // 2. Verifica que el usuario esté autenticado y pertenezca a una organización
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (identity === null) {
+      throw new ConvexError({
+        code: 'UNAUTHORIZED',
+        message: 'Identity not found',
+      })
+    }
+    
+    const orgId = identity.orgId as string
+
+    if (!orgId) {
+      throw new ConvexError({
+        code: 'UNAUTHORIZED',
+        message: 'Organization not found',
+      })
+    }
+
+    // 3. Llama al modelo de IA de Google (Gemini) para mejorar el texto
+    const response = await generateText({
+      model: google.chat('gemini-1.5-flash'),
+      messages: [
+        {
+          // 3a. Se le da una instrucción al sistema para que sepa cuál es su rol
+          role: "system",
+          content:
+            "Enhance the operator's message to be more professional, clear, and helpful while maintaning their intent and key information.",
+        },
+        {
+          // 3b. Se le pasa el mensaje del agente para que lo procese
+          role: "user",
+          content: args.prompt,
+        },
+      ],
+    });
+
+    // 4. Devuelve el texto mejorado por la IA
+    return response.text;
+  },
+})
 
 
 export const create = mutation({
