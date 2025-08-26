@@ -4,7 +4,7 @@ import { api } from "@workspace/backend/_generated/api"
 import { Id } from "@workspace/backend/_generated/dataModel"
 import { Button } from "@workspace/ui/components/button"
 import { useQuery } from "convex/react"
-import { MoreHorizontalIcon } from "lucide-react"
+import { MoreHorizontalIcon, Wand2Icon } from "lucide-react"
 import {
   AIConversation,
   AIConversationContent,
@@ -101,6 +101,61 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
         <AIConversationScrollButton />
 
       </AIConversation>
+
+      <div className="p-2">
+        <Form {...form}>
+          <AIInput onSubmit={form.handleSubmit(onSubmit)}>
+            <FormField 
+              control={form.control}
+              disabled={conversation?.status === "resolved"}
+              name="message"
+              render={({ field }) => (
+                <AIInputTextarea 
+                  disabled={
+                    conversation?.status === 'resolved' ||
+                    form.formState.isSubmitting 
+                    // TODO: or if enhancing prompt
+                  }
+                  onChange={field.onChange}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      form.handleSubmit(onSubmit)()
+                    }
+                  }}
+                  placeholder={
+                    conversation?.status === 'resolved'
+                      ? 'This conversation has been resolved'
+                      : 'Type your response as an operator...'
+                  }
+                  value={field.value}
+                />
+              )}
+            />
+
+            <AIInputToolbar>
+              <AIInputTools>
+                <AIInputButton>
+                  <Wand2Icon /> 
+                  Enhance
+                </AIInputButton>
+              </AIInputTools>  
+
+              <AIInputSubmit 
+                disabled={
+                  conversation?.status === 'resolved' ||
+                  !form.formState.isValid ||
+                  form.formState.isSubmitting 
+                  // TODO: or if enhancing prompt
+                }
+                status="ready"
+                type="submit"
+              />
+            </AIInputToolbar>
+          </AIInput>
+        </Form>
+
+      </div>
 
     </div>
   )
