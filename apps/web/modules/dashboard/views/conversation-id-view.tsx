@@ -180,7 +180,9 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
 
             <AIInputToolbar>
               <AIInputTools>
-                <AIInputButton>
+                <AIInputButton
+                  disabled={conversation?.status === 'resolved'}
+                >
                   <Wand2Icon /> 
                   Enhance
                 </AIInputButton>
