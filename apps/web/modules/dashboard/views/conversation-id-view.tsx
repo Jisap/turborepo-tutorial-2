@@ -30,6 +30,7 @@ import { toUIMessages, useThreadMessages } from '@convex-dev/agent/react';
 import { AIResponse } from '@workspace/ui/components/ai/response';
 import { DicebearAvatar } from "@workspace/ui/components/dicebear-avatar"
 import { ConversationStatusButton } from "../ui/components/conversation-status-button"
+import { useState } from "react"
 
 
 const formSchema = z.object({
@@ -67,9 +68,12 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
     }
   }
 
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const updateConversationStatus = useMutation(api.private.conversations.updateStatus);
   const handleToggleStatus = async () => {
     if(!conversation) return
+
+    setIsUpdatingStatus(true)
 
     let newStatus:  "unresolved" | "escalated" | "resolved"
 
@@ -89,6 +93,8 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
       })
     }catch(error){
       console.error("Error updating conversation status", error)
+    }finally{
+      setIsUpdatingStatus(false)
     }
   }
 
@@ -104,6 +110,7 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
           <ConversationStatusButton 
             onClick={handleToggleStatus}
             status={conversation.status}
+            disabled={isUpdatingStatus}
           />
         )}
       </header>
