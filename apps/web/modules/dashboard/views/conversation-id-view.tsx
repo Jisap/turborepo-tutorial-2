@@ -29,6 +29,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { toUIMessages, useThreadMessages } from '@convex-dev/agent/react';
 import { AIResponse } from '@workspace/ui/components/ai/response';
 import { DicebearAvatar } from "@workspace/ui/components/dicebear-avatar"
+import { ConversationStatusButton } from "../ui/components/conversation-status-button"
 
 
 const formSchema = z.object({
@@ -66,6 +67,32 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
     }
   }
 
+  const updateConversationStatus = useMutation(api.private.conversations.updateStatus);
+  const handleToggleStatus = async () => {
+    if(!conversation) return
+
+    let newStatus:  "unresolved" | "escalated" | "resolved"
+
+    // Cycle states: unresolved -> escalated -> resolved -> unresolved
+    if(conversation.status === 'unresolved') {
+      newStatus = "escalated"
+    }else if (conversation.status === 'escalated') {
+      newStatus = "resolved"
+    }else{
+      newStatus = "unresolved"
+    }
+
+    try {
+      await updateConversationStatus({
+        conversationId,
+        status: newStatus
+      })
+    }catch(error){
+      console.error("Error updating conversation status", error)
+    }
+  }
+
+
   return (
     <div className="flex h-full flex-col bg-muted">
       <header className="flex items-center justify-between border-b bg-background p-2.5">
@@ -73,9 +100,12 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
           <MoreHorizontalIcon />
         </Button>
 
-        <Button>
-          Edit
-        </Button>
+        {!!conversation && (
+          <ConversationStatusButton 
+            onClick={handleToggleStatus}
+            status={conversation.status}
+          />
+        )}
       </header>
      
       <AIConversation className="max-h-[calc(100vh-180px)]">
