@@ -4,6 +4,8 @@ import { internal } from "../_generated/api";
 import { supportAgent } from "../system/ai/agents/supportAgent";
 import { Id } from "../_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
+import { escalateConversation } from "../system/ai/tools/escalateConversation";
+import { resolveConversation } from "../system/ai/tools/resolveConversation";
 
 // Punto de entrada principal para que un usuario envíe un nuevo mensaje a una conversación existente.
 // Su objetivo no es solo guardar el mensaje, sino orquestar una serie de validaciones y, lo más importante, 
@@ -63,8 +65,16 @@ export const create = action({
 
     await supportAgent.generateText(                                         // 3º Invoca el agente de IA para generar una respuesta
       ctx,
-      { threadId: args.threadId },
-      { prompt: args.prompt }
+      { 
+        threadId: args.threadId 
+      },
+      { 
+        prompt: args.prompt,
+        tools: {
+          escalateConversation,
+          resolveConversation
+        }
+       }
     );
   }
 })

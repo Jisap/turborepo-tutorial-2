@@ -4,7 +4,7 @@ import { internalMutation, internalQuery } from "../_generated/server";
 
 
 
-export const resolver = internalMutation({
+export const resolve = internalMutation({
   args: {
     threadId: v.string(),
   },
