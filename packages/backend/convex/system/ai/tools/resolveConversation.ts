@@ -16,6 +16,16 @@ import { supportAgent } from '../agents/supportAgent';
 // - Aserción de tipo as any para el esquema de validación
 // - Tipado explícito en el handler
 
+/**
+ * Una herramienta para resolver conversaciones por su ID de hilo.
+ *
+ * Esta herramienta marca una conversación como resuelta en el sistema y guarda un mensaje de confirmación
+ * en el hilo. Requiere un ID de hilo válido en el contexto para funcionar.
+ *
+ * @throws Devolverá un mensaje de error si no se proporciona un ID de hilo en el contexto.
+ * @returns Un mensaje de éxito indicando que la conversación ha sido resuelta.
+ */
+
 export const resolveConversation = createTool({
   description: "Resolve a conversation",
   args: z.object({}) as any,
