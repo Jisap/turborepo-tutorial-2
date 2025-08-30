@@ -3,7 +3,7 @@
 import { api } from "@workspace/backend/_generated/api"
 import { Id } from "@workspace/backend/_generated/dataModel"
 import { Button } from "@workspace/ui/components/button"
-import { useMutation, useQuery } from "convex/react"
+import { useAction, useMutation, useQuery } from "convex/react"
 import { MoreHorizontalIcon, Wand2Icon } from "lucide-react"
 import {
   AIConversation,
@@ -33,10 +33,12 @@ import { ConversationStatusButton } from "../ui/components/conversation-status-b
 import { useState } from "react"
 import { useInfiniteScroll } from "@workspace/ui/hooks/use-infinite-scroll"
 import { InfiniteScrollTrigger } from "@workspace/ui/components/infinite-scroll-trigger"
+import { cn } from "@workspace/ui/lib/utils"
 
 
 
 
+// Esquema de validación para el formulario de envío de mensajes.
 const formSchema = z.object({
   message: z.string().min(1, "Message is required"),
 })
@@ -57,56 +59,77 @@ const formSchema = z.object({
  * @param {object} props - Propiedades del componente.
  * @param {Id<'conversations'>} props.conversationId - El ID de la conversación a mostrar.
  */
+
+
+
 export const ConversationIdView = ({ conversationId }: { conversationId: Id<'conversations'> }) => {
 
-  const conversation = useQuery(api.private.conversations.getOne, {                         // Carga los detalles de la conversación (estado, ID del hilo, etc.).
+  const conversation = useQuery(api.private.conversations.getOne, {                       // Carga los detalles de la conversación (estado, ID del hilo, etc.).
     conversationId
   })
-
   
-  
-  const messages = useThreadMessages(                                                       // Carga los mensajes del hilo de la conversación de forma paginada.
-    api.private.messages.getMany,                                                           // "skip" se usa si el threadId aún no se ha cargado para evitar una query inválida.
+  const messages = useThreadMessages(                                                     // Carga los mensajes del hilo de la conversación de forma paginada.
+    api.private.messages.getMany,                                                         // "skip" se usa si el threadId aún no se ha cargado para evitar una query inválida.
     conversation?.threadId ? { threadId: conversation.threadId } : "skip",
     {initialNumItems: 10}
   )
-
-  const createMessage = useMutation(api.private.messages.create);                           // Mutación para crear un nuevo mensaje en la conversación.
-
   
-  const form = useForm<z.infer<typeof formSchema>>({                                        // Configuración del formulario para el envío de mensajes con react-hook-form y Zod.
+  const createMessage = useMutation(api.private.messages.create);                         // Mutación para crear un nuevo mensaje en la conversación.
+
+  const form = useForm<z.infer<typeof formSchema>>({                                      // Configuración del formulario para el envío de mensajes con react-hook-form y Zod.
     resolver: zodResolver(formSchema),
     defaultValues: {
       message: '',
     },
   })
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {                          // Función que se ejecuta al enviar el formulario.
+  
+  const [isEnhancing, setIsEnhancing] = useState(false)                                   // Estado para controlar si la mejora de la IA está en curso.
+  
+  const enhanceResponse = useAction(api.private.messages.enhanceResponse)                 // Acción de Convex para mejorar la respuesta del agente usando IA.
+  
+  const handleEnhanceResponse = async () => {                                             // Manejador para el botón 'Enhance'. Obtiene el texto actual, llama a la acción de IA y actualiza el formulario con la respuesta mejorada.
+    const currentPrompt = form.getValues("message")
+    setIsEnhancing(true)
+    try { 
+      const response = await enhanceResponse({                                            // Llama a la acción que reformula la respuesta.
+        prompt: currentPrompt,
+      })
+      
+      form.setValue("message", response)                                                  // Actualiza el campo del formulario con la respuesta mejorada.
+    } catch (error) {
+      // TODO: react-hot-toast
+      console.error("Failed to enhance response:", error)
+    } finally {
+      
+      setIsEnhancing(false)                                                               // Finaliza el estado de carga.
+    }
+  }
+  
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {                        // Función que se ejecuta al enviar el formulario.
     try {
       
-      await createMessage({ conversationId, prompt: values.message });                      // Llama a la mutación de Convex para crear el mensaje. 
+      await createMessage({ conversationId, prompt: values.message });                    // Llama a la mutación de Convex para crear el mensaje. 
       
-      form.reset();                                                                         // Resetea el campo del formulario tras el envío.
+      form.reset();                                                                       // Resetea el campo del formulario tras el envío.
     } catch (err) {
       console.error(err);
     }
   }
 
   
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)                           // Estado para controlar la carga mientras se actualiza el estado de la conversación.
-  
-  const updateConversationStatus = useMutation(api.private.conversations.updateStatus);     // Mutación para actualizar el estado de la conversación en la base de datos.
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)                         // Estado para controlar la carga mientras se actualiza el estado de la conversación.
 
-  // Maneja el cambio de estado de la conversación en un ciclo:
-  // sin resolver -> escalada -> resuelta -> sin resolver.
-  const handleToggleStatus = async () => {
+  const updateConversationStatus = useMutation(api.private.conversations.updateStatus);   // Mutación para actualizar el estado de la conversación en la base de datos.
+
+  const handleToggleStatus = async () => {                                                // Maneja el cambio de estado de la conversación en un ciclo: sin resolver -> escalada -> resuelta -> sin resolver.
     if(!conversation) return
 
     setIsUpdatingStatus(true)
 
     let newStatus:  "unresolved" | "escalated" | "resolved"
 
-    // Lógica para ciclar entre los estados.
+    // Lógica para ciclar entre los estados: sin resolver -> escalada -> resuelta -> sin resolver.
     if(conversation.status === 'unresolved') {
       newStatus = "escalated"
     }else if (conversation.status === 'escalated') {
@@ -132,7 +155,7 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
   const {
     canLoadMore,
     handleLoadMore,
-    isLoadingFirstPage, // No se usa actualmente, pero está disponible.
+    isLoadingFirstPage,
     isLoadingMore,
     topElementRef,
   } = useInfiniteScroll({
@@ -169,10 +192,10 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
             onLoadMore={handleLoadMore}
             ref={topElementRef}
           />
-          {/* Transforma los mensajes del formato de agente de Convex al formato de la UI. */}
+          {/* Transforma los mensajes del formato de agente de Convex al formato de la UI y los renderiza. */}
           {toUIMessages(messages.results ?? [])?.map((message) => (
             <AIMessage
-              // Lógica clave de inversión de roles para la UI:
+              // Lógica clave de inversión de roles para la UI.
               // La DB almacena roles absolutos ('user' para el cliente, 'assistant' para el agente).
               // La prop 'from' del componente de UI es relativa a quién está viendo la conversación.
               // Desde el panel del agente, invertimos los roles: los mensajes del cliente ('user')
@@ -186,6 +209,7 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
                 </AIResponse>
               </AIMessageContent>
 
+              {/* Muestra el avatar solo para los mensajes del cliente. */}
               {message.role === "user" && (
                 <DicebearAvatar 
                   seed={conversation?.contactSession._id ?? "user"}
@@ -212,8 +236,8 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
                 <AIInputTextarea 
                   disabled={
                     conversation?.status === 'resolved' ||
-                    form.formState.isSubmitting 
-                    // TODO: or if enhancing prompt
+                    form.formState.isSubmitting ||
+                    isEnhancing
                   }
                   onChange={field.onChange}
                   onKeyDown={(e) => {
@@ -235,10 +259,18 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
             <AIInputToolbar>
               <AIInputTools>
                 <AIInputButton
-                  disabled={conversation?.status === 'resolved'}
+                  onClick={handleEnhanceResponse}
+                  disabled={
+                    conversation?.status === "resolved" ||
+                    form.formState.isSubmitting ||
+                    !form.formState.isValid ||
+                    isEnhancing
+                  }
                 >
-                  <Wand2Icon /> 
-                  Enhance
+                  <Wand2Icon
+                    className={cn("h-4 w-4", isEnhancing && "animate-ping")}
+                  />
+                  {isEnhancing ? "Enhancing..." : "Enhance Response"}
                 </AIInputButton>
               </AIInputTools>  
 
@@ -246,8 +278,8 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
                 disabled={
                   conversation?.status === 'resolved' ||
                   !form.formState.isValid ||
-                  form.formState.isSubmitting 
-                  // TODO: or if enhancing prompt
+                  form.formState.isSubmitting ||
+                  isEnhancing
                 }
                 status="ready"
                 type="submit"
