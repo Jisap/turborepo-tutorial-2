@@ -31,45 +31,74 @@ import { AIResponse } from '@workspace/ui/components/ai/response';
 import { DicebearAvatar } from "@workspace/ui/components/dicebear-avatar"
 import { ConversationStatusButton } from "../ui/components/conversation-status-button"
 import { useState } from "react"
+import { useInfiniteScroll } from "@workspace/ui/hooks/use-infinite-scroll"
+import { InfiniteScrollTrigger } from "@workspace/ui/components/infinite-scroll-trigger"
+
+
 
 
 const formSchema = z.object({
   message: z.string().min(1, "Message is required"),
 })
 
+/**
+ * Componente que renderiza la vista de una conversación desde la perspectiva de un agente de soporte.
+ *
+ * Esta vista está diseñada para ser utilizada por un operador humano o una IA en un panel de control.
+ * Muestra el historial de mensajes, permite enviar nuevas respuestas y gestionar el estado de la conversación.
+ *
+ * Responsabilidades clave:
+ * - Cargar los detalles de la conversación y sus mensajes de forma paginada.
+ * - Invertir la perspectiva de los mensajes: los del cliente ('user') se muestran a la izquierda y los del agente ('assistant') a la derecha.
+ * - Permitir al agente enviar nuevos mensajes.
+ * - Gestionar el ciclo de vida del estado de la conversación (sin resolver -> escalada -> resuelta).
+ * - Deshabilitar interacciones cuando la conversación está resuelta.
+ *
+ * @param {object} props - Propiedades del componente.
+ * @param {Id<'conversations'>} props.conversationId - El ID de la conversación a mostrar.
+ */
 export const ConversationIdView = ({ conversationId }: { conversationId: Id<'conversations'> }) => {
 
-  const conversation = useQuery(api.private.conversations.getOne, {
+  const conversation = useQuery(api.private.conversations.getOne, {                         // Carga los detalles de la conversación (estado, ID del hilo, etc.).
     conversationId
   })
 
-  const messages = useThreadMessages(
-    api.private.messages.getMany,
+  
+  
+  const messages = useThreadMessages(                                                       // Carga los mensajes del hilo de la conversación de forma paginada.
+    api.private.messages.getMany,                                                           // "skip" se usa si el threadId aún no se ha cargado para evitar una query inválida.
     conversation?.threadId ? { threadId: conversation.threadId } : "skip",
     {initialNumItems: 10}
   )
 
-  const createMessage = useMutation(api.private.messages.create);
+  const createMessage = useMutation(api.private.messages.create);                           // Mutación para crear un nuevo mensaje en la conversación.
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  
+  const form = useForm<z.infer<typeof formSchema>>({                                        // Configuración del formulario para el envío de mensajes con react-hook-form y Zod.
     resolver: zodResolver(formSchema),
     defaultValues: {
       message: '',
     },
   })
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {                          // Función que se ejecuta al enviar el formulario.
     try {
-      await createMessage({ conversationId, prompt: values.message });
-
-      form.reset();
+      
+      await createMessage({ conversationId, prompt: values.message });                      // Llama a la mutación de Convex para crear el mensaje. 
+      
+      form.reset();                                                                         // Resetea el campo del formulario tras el envío.
     } catch (err) {
       console.error(err);
     }
   }
 
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
-  const updateConversationStatus = useMutation(api.private.conversations.updateStatus);
+  
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)                           // Estado para controlar la carga mientras se actualiza el estado de la conversación.
+  
+  const updateConversationStatus = useMutation(api.private.conversations.updateStatus);     // Mutación para actualizar el estado de la conversación en la base de datos.
+
+  // Maneja el cambio de estado de la conversación en un ciclo:
+  // sin resolver -> escalada -> resuelta -> sin resolver.
   const handleToggleStatus = async () => {
     if(!conversation) return
 
@@ -77,7 +106,7 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
 
     let newStatus:  "unresolved" | "escalated" | "resolved"
 
-    // Cycle states: unresolved -> escalated -> resolved -> unresolved
+    // Lógica para ciclar entre los estados.
     if(conversation.status === 'unresolved') {
       newStatus = "escalated"
     }else if (conversation.status === 'escalated') {
@@ -98,6 +127,22 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
     }
   }
 
+  // Hook personalizado para gestionar la lógica del scroll infinito.
+  // Se integra con el estado de paginación de `useThreadMessages`.
+  const {
+    canLoadMore,
+    handleLoadMore,
+    isLoadingFirstPage, // No se usa actualmente, pero está disponible.
+    isLoadingMore,
+    topElementRef,
+  } = useInfiniteScroll({
+    status: messages.status,
+    loadMore: messages.loadMore,
+    loadSize: 12,
+    observerEnabled: true,
+  })
+
+
 
   return (
     <div className="flex h-full flex-col bg-muted">
@@ -117,12 +162,21 @@ export const ConversationIdView = ({ conversationId }: { conversationId: Id<'con
      
       <AIConversation className="max-h-[calc(100vh-180px)]">
         <AIConversationContent>
+          {/* Componente invisible que dispara la carga de más mensajes al ser visible en pantalla. */}
+          <InfiniteScrollTrigger
+            canLoadMore={canLoadMore}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={handleLoadMore}
+            ref={topElementRef}
+          />
+          {/* Transforma los mensajes del formato de agente de Convex al formato de la UI. */}
           {toUIMessages(messages.results ?? [])?.map((message) => (
             <AIMessage
-              // La base de datos almacena los roles de forma absoluta ('user' para el cliente, 'assistant' para el agente).
+              // Lógica clave de inversión de roles para la UI:
+              // La DB almacena roles absolutos ('user' para el cliente, 'assistant' para el agente).
               // La prop 'from' del componente de UI es relativa a quién está viendo la conversación.
-              // Como estamos en el panel del agente, invertimos los roles para que los mensajes del cliente ('user')
-              // aparezcan como si vinieran del 'assistant' (a la izquierda) y viceversa.
+              // Desde el panel del agente, invertimos los roles: los mensajes del cliente ('user')
+              // se muestran a la izquierda (estilo 'assistant') y los del agente a la derecha (estilo 'user').
               from={message.role === "user" ? "assistant" : "user"}
               key={message.id}
             >
