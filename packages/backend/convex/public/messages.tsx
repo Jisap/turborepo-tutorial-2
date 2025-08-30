@@ -1,11 +1,12 @@
 import { ConvexError, v } from "convex/values";
 import { action, query } from "../_generated/server";
-import { internal } from "../_generated/api";
+import { components, internal } from "../_generated/api";
 import { supportAgent } from "../system/ai/agents/supportAgent";
 import { Id } from "../_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
 import { escalateConversation } from "../system/ai/tools/escalateConversation";
 import { resolveConversation } from "../system/ai/tools/resolveConversation";
+import { saveMessage } from "@convex-dev/agent";
 
 // Punto de entrada principal para que un usuario envíe un nuevo mensaje a una conversación existente.
 // Su objetivo no es solo guardar el mensaje, sino orquestar una serie de validaciones y, lo más importante, 
@@ -63,19 +64,28 @@ export const create = action({
       });
     }
 
-    await supportAgent.generateText(                                         // 3º Invoca el agente de IA para generar una respuesta
-      ctx,
-      { 
-        threadId: args.threadId 
-      },
-      { 
+    const shouldTriggerAgent = conversation.status === "unresolved" ? true : false; // Si la conversación esta marcada con unresolved
+
+    if(shouldTriggerAgent){
+      await supportAgent.generateText(                                       // 3º Invoca el agente de IA para generar una respuesta
+        ctx,
+        { 
+          threadId: args.threadId 
+        },
+        { 
+          prompt: args.prompt,
+          tools: {
+            resolveConversation,
+            escalateConversation,
+          }
+         }
+      );
+    } else {                                                                 // Si la conversación no esta marcada como unresolved (escalate o resolve), se guarda el mensaje en el hilo 
+      await saveMessage(ctx, components.agent, {                             // para que sea el operador humano sea el que pueda responder
+        threadId: args.threadId,
         prompt: args.prompt,
-        tools: {
-          resolveConversation,
-          escalateConversation,
-        }
-       }
-    );
+      })
+    }
   }
 })
 
