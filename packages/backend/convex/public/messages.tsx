@@ -64,7 +64,7 @@ export const create = action({
       });
     }
 
-    const shouldTriggerAgent = conversation.status === "unresolved" ? true : false; // Si la conversación esta marcada con unresolved
+    const shouldTriggerAgent = conversation.status === "unresolved"          // Si la conversación esta marcada con unresolved
 
     if(shouldTriggerAgent){
       await supportAgent.generateText(                                       // 3º Invoca el agente de IA para generar una respuesta
@@ -75,8 +75,8 @@ export const create = action({
         { 
           prompt: args.prompt,
           tools: {
-            resolveConversation,
-            escalateConversation,
+            resolveConversation,  // Si el usuario expecifica que quiere resolver la conversación -> status = resolved
+            escalateConversation, // Si el usuario expeficica que quiere un operador humano -> status = escalated
           }
          }
       );

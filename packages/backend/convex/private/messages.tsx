@@ -2,11 +2,11 @@ import { ConvexError, v } from "convex/values";
 import { action, mutation, query } from "../_generated/server";
 import { components, internal } from "../_generated/api";
 import { supportAgent } from "../system/ai/agents/supportAgent";
-import { Id } from "../_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
 import { saveMessage } from "@convex-dev/agent";
 import { generateText } from 'ai';
 import { google } from "@ai-sdk/google";
+
 
 
 /**
@@ -20,12 +20,13 @@ import { google } from "@ai-sdk/google";
 
 /**
  * Resumen del Flujo de Trabajo
- * 1º Un cliente escribe en el widget.
- * 2º A ti (operador) te aparece una nueva conversación en el panel.
- * 3º Abres la conversación. Lees el mensaje del cliente.
- * 4º Escribes una respuesta.
- * 5º (Opcional) Usas la IA (Gemini) para que te ayude a reformular tu respuesta y hacerla más profesional.
- * 6º Envías la respuesta final al cliente.
+ * 1º Un cliente escribe en el widget expecificando que quiere un operador humano.
+ * 2º status = escalated
+ * 3º A ti (operador) te aparece una nueva conversación en el panel.
+ * 4º Abres la conversación. Lees el mensaje del cliente.
+ * 5º Escribes una respuesta.
+ * 6º (Opcional) Usas la IA (Gemini) para que te ayude a reformular tu respuesta y hacerla más profesional.
+ * 7º Envías la respuesta final al cliente.
  */
 export const enhanceResponse = action({
   args: {
@@ -75,6 +76,7 @@ export const enhanceResponse = action({
   },
 })
 
+// Endpoints para la conversación de un agente de soporte humano desde el dashboard.
 
 export const create = mutation({
   args: {
@@ -128,7 +130,14 @@ export const create = mutation({
       })
     }
 
-    // 5. Si todas las validaciones son correctas, guardar el nuevo mensaje del asistente
+    // 5. Si la conversación está en estado "unresolved", cambiar el estado a "escalated" porque el agente de soporte humano está respondiendo
+    if(conversation.status === 'unresolved'){
+      await ctx.db.patch(args.conversationId, {
+        status: 'escalated'
+      })
+    }
+
+    // 6. Si todas las validaciones son correctas, guardar el nuevo mensaje del asistente
     await saveMessage(ctx, components.agent, {
       threadId: conversation.threadId,
       agentName: identity.familyName,
