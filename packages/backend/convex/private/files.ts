@@ -146,7 +146,7 @@ export const addFile = action({
 
 export const deleteFile = mutation({
   args: {
-    entryId: vEntry, // Validador específico para IDs de entrada de RAG.
+    entryId: vEntryId, // Validador específico para IDs de entrada de RAG.
   },
   handler: async (ctx, args) => {
     // 1. Autenticación y Autorización del usuario.
@@ -180,7 +180,7 @@ export const deleteFile = mutation({
     }
 
     // 2. Recuperación de la entrada del archivo desde el sistema RAG.
-    const entry = await rag.getEntry(ctx, args.entryId);
+    const entry = await rag.getEntry(ctx, { entryId: args.entryId });
 
     if (!entry) {
       throw new ConvexError({
@@ -204,6 +204,6 @@ export const deleteFile = mutation({
     }
 
     // 5. Eliminación de la Entrada RAG: Borra el registro y los embeddings de la base de datos vectorial.
-    await rag.deleteAsync(ctx, args.entryId);
+    await rag.deleteAsync(ctx, { entryId: args.entryId });
   },
 });
