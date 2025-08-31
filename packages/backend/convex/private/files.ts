@@ -1,10 +1,11 @@
 import { ConvexError, v } from "convex/values";
-import { action } from "../_generated/server";
+import { action, mutation } from "../_generated/server";
 import {
   contentHashFromArrayBuffer,
   EntryId,
   guessMimeTypeFromContents,
   guessMimeTypeFromExtension,
+  vEntry,
   vEntryId,
 } from '@convex-dev/rag'
 import { extractTextContent } from "../lib/extractTextContent";
@@ -88,7 +89,7 @@ export const addFile = action({
 
     const {bytes, filename, category} = args
 
-    // 2. Determinar el tipo MIME y almacenar el archivo en Convex Storage
+    // 2. Determinar el tipo MIME y almacenamiento del archivo en Convex Storage
     const mimeType = args.mimeType || guessMimeType(filename, bytes);
     const blob = new Blob([bytes], { type: mimeType })
 
@@ -134,3 +135,75 @@ export const addFile = action({
     }
   }
 })
+
+/**
+ * Mutación de Convex para eliminar un archivo.
+ * Se encarga de verificar la propiedad del archivo y eliminar tanto el archivo físico
+ * del almacenamiento como su entrada y datos asociados del sistema RAG.
+ *
+ * @param args - Argumentos que incluyen el `entryId` del archivo a eliminar.
+ */
+
+export const deleteFile = mutation({
+  args: {
+    entryId: vEntry, // Validador específico para IDs de entrada de RAG.
+  },
+  handler: async (ctx, args) => {
+    // 1. Autenticación y Autorización del usuario.
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Identity not found",
+      });
+    }
+
+    const orgId = identity.orgId as string;
+
+    if (!orgId) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Organization ID not found in identity",
+      });
+    }
+
+    // Verificación de que el namespace de la organización existe en RAG.
+    const namespace = await rag.getNamespace(ctx, {
+      namespace: orgId,
+    });
+
+    if (!namespace) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Invalid Namespace",
+      });
+    }
+
+    // 2. Recuperación de la entrada del archivo desde el sistema RAG.
+    const entry = await rag.getEntry(ctx, args.entryId);
+
+    if (!entry) {
+      throw new ConvexError({
+        code: "not_found",
+        message: "Entry not found",
+      });
+    }
+
+    // 3. Verificación de Propiedad: ¿El usuario pertenece a la misma organización que subió el archivo?
+    // Esto es crucial para la seguridad y la multi-tenencia.
+    if (entry.metadata?.uploadedBy !== orgId) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "You do not have permission to delete this file",
+      });
+    }
+
+    // 4. Eliminación del Archivo Físico: Borra el blob del almacenamiento de Convex.
+    if (entry.metadata?.storageId) {
+      await ctx.storage.delete(entry.metadata.storageId as Id<"_storage">);
+    }
+
+    // 5. Eliminación de la Entrada RAG: Borra el registro y los embeddings de la base de datos vectorial.
+    await rag.deleteAsync(ctx, args.entryId);
+  },
+});
