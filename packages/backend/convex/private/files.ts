@@ -275,15 +275,24 @@ export const list = query({
 
 // --- Helper Functions ---
 
+/**
+ * Convierte un objeto 'Entry' del sistema RAG a un objeto 'PublicFile' para el frontend.
+ * @param ctx - El contexto de la query.
+ * @param entry - La entrada del RAG a convertir.
+ * @returns Un objeto `PublicFile` con datos simplificados.
+ */
+
 async function convertEntryToPublicFile(
   ctx: QueryCtx,
   entry: Entry
 ): Promise<PublicFile> {
+
   const metadata = entry.metadata as EntryMetadata | undefined;
   const storageId = metadata?.storageId;
 
   let fileSize = "unknown";
 
+  // Obtiene el tamaño del archivo desde los metadatos del almacenamiento.
   if (storageId) {
     try {
       const storageMetadata = await ctx.db.system.get(storageId);
@@ -298,6 +307,7 @@ async function convertEntryToPublicFile(
   const filename = entry.key || "Unknown";
   const extension = filename.split(".").pop()?.toLowerCase() || "txt";
 
+  // Mapea el estado interno del RAG a un estado comprensible para la UI.
   let status: "ready" | "processing" | "error" = "error";
   if (entry.status === "ready") {
     status = "ready";
@@ -305,6 +315,7 @@ async function convertEntryToPublicFile(
     status = "processing";
   }
 
+  // Obtiene la URL de descarga del archivo si existe.
   const url = storageId ? await ctx.storage.getUrl(storageId) : null;
   return {
     id: entry.entryId,
@@ -316,6 +327,12 @@ async function convertEntryToPublicFile(
     category: metadata?.category || undefined,
   };
 }
+
+/**
+ * Formatea un tamaño en bytes a un formato legible por humanos (B, KB, MB, GB).
+ * @param bytes - El número de bytes.
+ * @returns Una cadena de texto con el tamaño formateado (ej: "1.2 MB").
+ */
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) {
