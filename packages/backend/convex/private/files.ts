@@ -1,7 +1,8 @@
 import { ConvexError, v } from "convex/values";
-import { action, mutation } from "../_generated/server";
+import { action, mutation, query, QueryCtx } from "../_generated/server";
 import {
   contentHashFromArrayBuffer,
+  Entry,
   EntryId,
   guessMimeTypeFromContents,
   guessMimeTypeFromExtension,
@@ -11,6 +12,7 @@ import {
 import { extractTextContent } from "../lib/extractTextContent";
 import rag from "../system/ai/rag";
 import { Id } from "../_generated/dataModel";
+import { paginationOptsValidator } from "convex/server";
 
 /**
  * Adivina el tipo MIME de un archivo.
@@ -56,7 +58,7 @@ export type PublicFile = {
 /**
  * Acción de Convex para añadir un nuevo archivo.
  * Su propósito principal es gestionar la subida de archivos por parte de los usuarios,
- *  procesarlos para extraer su contenido de texto, 
+ * procesarlos para extraer su contenido de texto, 
  * y finalmente indexarlos en un sistema de Búsqueda y Generación Aumentada (RAG). 
  *
  * @param args - Argumentos que incluyen el archivo (nombre, tipo, bytes) y una categoría opcional.
@@ -207,3 +209,124 @@ export const deleteFile = mutation({
     await rag.deleteAsync(ctx, { entryId: args.entryId });
   },
 });
+
+/**
+ * Query para listar los archivos de una organización, con opción de filtrar por categoría.
+ */
+export const list = query({
+  args: {
+    category: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator, // Validador estándar de Convex para paginación.
+  },
+  handler: async (ctx, args) => {
+    // Autenticación y obtención del ID de la organización.
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Identity not found",
+      });
+    }
+
+    // El campo org_id se añade al JWT de Convex en la configuración de Clerk.
+    const orgId = identity.org_id as string;
+    if (!orgId) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Organization not found!",
+      });
+    }
+
+    // Obtiene el namespace correspondiente a la organización
+    const namespace = await rag.getNamespace(ctx, {
+      namespace: orgId, 
+    });
+
+    // Si no hay namespace, significa que la organización no tiene archivos.
+    if (!namespace) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+
+    // Lista las entradas del RAG para el namespace de la organización.
+    const results = await rag.list(ctx, {
+      namespaceId: namespace.namespaceId,
+      paginationOpts: args.paginationOpts,
+    });
+
+    // Convierte cada entrada de RAG a un formato público para el frontend.
+    const files = await Promise.all(
+      results.page.map((entry) => convertEntryToPublicFile(ctx, entry))
+    );
+
+    // Filtra los archivos por categoría si se proporciona una.
+    const filteredFiles = args.category
+      ? files.filter((file) => file.category === args.category)
+      : files;
+
+    // Devuelve la página de resultados filtrados y la información de paginación.
+    return {
+      page: filteredFiles,
+      isDone: results.isDone,
+      continueCursor: results.continueCursor,
+    };
+  },
+});
+
+
+// --- Helper Functions ---
+
+async function convertEntryToPublicFile(
+  ctx: QueryCtx,
+  entry: Entry
+): Promise<PublicFile> {
+  const metadata = entry.metadata as EntryMetadata | undefined;
+  const storageId = metadata?.storageId;
+
+  let fileSize = "unknown";
+
+  if (storageId) {
+    try {
+      const storageMetadata = await ctx.db.system.get(storageId);
+      if (storageMetadata) {
+        fileSize = formatFileSize(storageMetadata.size);
+      }
+    } catch (err) {
+      console.error("Error fetching storage metadata: ", err);
+    }
+  }
+
+  const filename = entry.key || "Unknown";
+  const extension = filename.split(".").pop()?.toLowerCase() || "txt";
+
+  let status: "ready" | "processing" | "error" = "error";
+  if (entry.status === "ready") {
+    status = "ready";
+  } else if (entry.status === "pending") {
+    status = "processing";
+  }
+
+  const url = storageId ? await ctx.storage.getUrl(storageId) : null;
+  return {
+    id: entry.entryId,
+    name: filename,
+    type: extension,
+    size: fileSize,
+    status,
+    url,
+    category: metadata?.category || undefined,
+  };
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) {
+    return "0 B";
+  }
+
+  const k = 1024;
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${Number.parseFloat((bytes / k ** i).toFixed(1))} ${units[i]}`;
+}
+
+
