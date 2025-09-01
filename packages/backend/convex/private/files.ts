@@ -229,7 +229,7 @@ export const list = query({
     }
 
     // El campo org_id se añade al JWT de Convex en la configuración de Clerk.
-    const orgId = identity.org_id as string;
+    const orgId = identity.orgId as string;
     if (!orgId) {
       throw new ConvexError({
         code: "UNAUTHORIZED",

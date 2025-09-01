@@ -1,8 +1,11 @@
+import { FilesView } from '@/modules/files/ui/views/files-views'
 import React from 'react'
 
 const Page = () => {
   return (
-    <div>Files</div>
+    <div>
+      <FilesView />
+    </div>
   )
 }
 
