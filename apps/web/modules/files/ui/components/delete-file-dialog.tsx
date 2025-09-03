@@ -45,7 +45,7 @@ export const DeleteFileDialog = ({
   const handleDelete = async () => {
     if (!file) return;                                                 // Guarda de seguridad por si no hay archivo.
 
-    setIsDeleting(true); // Inicia el estado de carga.
+    setIsDeleting(true);                                               // Inicia el estado de carga.
     try {
       
       await deleteFile({ entryId: file.id });                          // Llama a la mutación del backend con el ID de la entrada del archivo.
