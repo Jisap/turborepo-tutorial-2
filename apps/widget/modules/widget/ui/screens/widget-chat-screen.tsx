@@ -81,11 +81,18 @@ export const WidgetChatScreen = () => {
     handleLoadMore,
     canLoadMore,
     isLoadingMore,
-  } = useInfiniteScroll({                                     // useInfiniteScroll proporciona los elementos necesarios para implementar el scroll infinito
+  } = useInfiniteScroll({                                      // useInfiniteScroll proporciona los elementos necesarios para implementar el scroll infinito
     status: messages.status,
     loadMore: messages.loadMore,
     loadSize: 10,
   })
+
+
+  // `messages` viene de `useThreadMessages` y, al ser una consulta paginada de Convex, devuelve un objeto con el estado de la paginación.
+  // `messages.results` contiene un array de mensajes "en bruto" del historial del agente.
+  // `toUIMessages` es una función de utilidad de `@convex-dev/agent/react` que agrupa y transforma
+  // estos mensajes en bruto en una lista consolidada y lista para renderizar en la UI.
+  const uiMessages = toUIMessages(messages.results ?? []);
 
   const onBack = () => {
     setConversationId(null);
@@ -104,7 +111,7 @@ export const WidgetChatScreen = () => {
 
     form.reset();
 
-    await createMessage({
+    await createMessage({                                  
       threadId: conversation.threadId,
       prompt: values.message,
       contactSessionId,
@@ -135,20 +142,29 @@ export const WidgetChatScreen = () => {
 
       <AIConversation>
         <AIConversationContent>
-          {/* Propociona el boton de carga más para el scroll infinito */}
+          {/* Componente que activa la carga de más mensajes al hacer scroll hacia arriba. */}
           <InfiniteScrollTrigger 
             canLoadMore={canLoadMore}
             isLoadingMore={isLoadingMore}
             onLoadMore={handleLoadMore}
             ref={topElementRef}
           />
-          {toUIMessages(messages.results ?? [])?.map((message) => (
+          {uiMessages.map((message) => (
             <AIMessage
               from={message.role === 'user' ? 'user' : 'assistant'}
               key={message.id}
             >
               <AIMessageContent>
-                <AIResponse>{message.content}</AIResponse>
+                {/* 
+                  Iteramos sobre `message.parts` en lugar de usar `message.content` directamente.
+                  Esto es más seguro porque maneja explícitamente los diferentes tipos de contenido
+                  (texto, llamadas a herramientas, etc.) y evita errores de renderizado cuando
+                  la respuesta de la IA no es un simple string.
+                */}
+                {message.parts.map((part, i) => {
+                  if (part.type === 'text') return <AIResponse key={i}>{part.text}</AIResponse>
+                  return null;
+                })}
               </AIMessageContent>
               {/* Add Avatar component */}
               {message.role === "assistant" && (

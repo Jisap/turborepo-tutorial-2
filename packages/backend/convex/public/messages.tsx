@@ -7,6 +7,7 @@ import { paginationOptsValidator } from "convex/server";
 import { escalateConversation } from "../system/ai/tools/escalateConversation";
 import { resolveConversation } from "../system/ai/tools/resolveConversation";
 import { saveMessage } from "@convex-dev/agent";
+import { search } from "../system/ai/tools/search";
 
 // Punto de entrada principal para que un usuario envíe un nuevo mensaje a una conversación existente.
 // Su objetivo no es solo guardar el mensaje, sino orquestar una serie de validaciones y, lo más importante, 
@@ -77,6 +78,7 @@ export const create = action({
           tools: {
             resolveConversation,  // Si el usuario expecifica que quiere resolver la conversación -> status = resolved
             escalateConversation, // Si el usuario expeficica que quiere un operador humano -> status = escalated
+            search                // Si el usuario especifica que quiere buscar información -> return search results
           }
          }
       );
