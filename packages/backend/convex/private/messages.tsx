@@ -6,6 +6,7 @@ import { paginationOptsValidator } from "convex/server";
 import { saveMessage } from "@convex-dev/agent";
 import { generateText } from 'ai';
 import { google } from "@ai-sdk/google";
+import { SUPPORT_AGENT_PROMPT } from "../system/ai/constant";
 
 
 
@@ -60,8 +61,7 @@ export const enhanceResponse = action({
         {
           // 3a. Se le da una instrucción al sistema para que sepa cuál es su rol
           role: "system",
-          content:
-            "Enhance the operator's message to be more professional, clear, and helpful while maintaning their intent and key information.",
+          content: SUPPORT_AGENT_PROMPT,
         },
         {
           // 3b. Se le pasa el mensaje del agente para que lo procese
